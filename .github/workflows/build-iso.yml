@@ -15,10 +15,12 @@ jobs:
     steps:
       - name: Check out FroOS
         uses: actions/checkout@v4
-      - name: Install live-build
+
+      - name: Install live-build tools
         run: |
           sudo apt-get update
-          sudo apt-get install -y live-build debootstrap squashfs-tools xorriso isolinux syslinux-common
+          sudo apt-get install -y live-build debootstrap squashfs-tools xorriso isolinux syslinux-common ca-certificates
+
       - name: Configure Debian Live
         run: |
           mkdir build
@@ -30,26 +32,34 @@ jobs:
             --binary-images iso-hybrid \
             --debian-installer none \
             --archive-areas "main contrib non-free-firmware" \
-            --security false \
+            --apt-indices false \
             --bootappend-live "boot=live components quiet"
-      - name: Add FroOS desktop and correct security mirror
+
+      - name: Add FroOS desktop
         run: |
           cd build
           mkdir -p config/package-lists config/hooks/normal config/includes.chroot/opt/froos config/archives
           cp ../index.html config/includes.chroot/opt/froos/index.html
+
+          # Use Debian's signed security repository over HTTP so bootstrap does not
+          # require a CA bundle before ca-certificates has been installed.
           cat > config/archives/froos-security.list.chroot <<'APT'
-          deb https://security.debian.org/debian-security bookworm-security main contrib non-free-firmware
+          deb http://security.debian.org/debian-security bookworm-security main contrib non-free-firmware
           APT
+
           cat > config/package-lists/froos.list.chroot <<'PKGS'
+          ca-certificates
           live-boot
           systemd-sysv
           xorg
+          xinit
           openbox
           chromium
           fonts-liberation
           dbus-x11
           x11-xserver-utils
           PKGS
+
           cat > config/hooks/normal/0100-froos-kiosk.hook.chroot <<'HOOK'
           #!/bin/sh
           set -e
@@ -92,18 +102,25 @@ jobs:
           systemctl enable froos-kiosk.service
           HOOK
           chmod +x config/hooks/normal/0100-froos-kiosk.hook.chroot
+
       - name: Build ISO
         run: |
           cd build
           sudo lb build
-      - name: Stage ISO
+
+      - name: Verify ISO exists
         run: |
+          set -e
           mkdir -p output
           ISO="$(find build -maxdepth 1 -type f -name '*.iso' -print -quit)"
-          test -n "$ISO"
-          cp "$ISO" output/FroOS-Preview-0.4.1.iso
-          sha256sum output/FroOS-Preview-0.4.1.iso > output/SHA256SUMS.txt
-          ls -lh output/FroOS-Preview-0.4.1.iso
+          if [ -z "$ISO" ]; then
+            echo "Build finished without producing an ISO file."
+            exit 1
+          fi
+          cp "$ISO" output/FroOS-Preview-0.4.2.iso
+          sha256sum output/FroOS-Preview-0.4.2.iso > output/SHA256SUMS.txt
+          ls -lh output/FroOS-Preview-0.4.2.iso
+
       - name: Upload ISO artifact
         uses: actions/upload-artifact@v4
         with:

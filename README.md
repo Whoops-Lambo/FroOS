@@ -1,36 +1,22 @@
-# FroOS Preview 0.4 — VirtualBox Edition
+# FroOS Preview 0.4.2 — ISO build fix
 
-This package contains the FroOS browser-desktop prototype, a GitHub Actions workflow that builds a bootable live ISO, and a Windows PowerShell helper that creates a VirtualBox VM automatically.
+This revision addresses the new GitHub Actions logs:
+- The Debian security repository failed TLS verification because the build chroot had no CA bundle yet.
+- The build then failed while retrieving Debian `Contents-amd64.gz`.
 
-**Honest status:** this is still a Linux live environment that auto-launches the FroOS desktop prototype. It is not a standalone kernel or a fully native OS. The ISO must be built by the workflow; no precompiled ISO is included.
+Changes in this workflow:
+- Uses Debian's signed `bookworm-security` repository over HTTP for the bootstrap chroot (APT still verifies signed repository metadata).
+- Adds `ca-certificates` and `xinit` to the live image packages.
+- Sets `--apt-indices false` to avoid the failing Contents index retrieval path.
+- Checks for the generated ISO and uploads it as `FroOS-VirtualBox-ISO`.
 
-## Easiest setup from Windows
+## Build from Windows
+1. Replace `index.html`, `README.md`, and `.github/workflows/build-iso.yml` in your existing GitHub repository with these files.
+2. Commit the changes.
+3. Open **Actions → Build FroOS VirtualBox ISO → Run workflow**.
+4. If it succeeds, download the `FroOS-VirtualBox-ISO` artifact and extract `FroOS-Preview-0.4.2.iso`.
 
-### A. Build the ISO
-1. Create a repository at https://github.com/new.
-2. Upload all files from this folder. Make sure `.github/workflows/build-iso.yml` is included. If the website hides `.github`, use GitHub Desktop or upload with Git.
-3. In the repository, select **Actions** → **Build FroOS VirtualBox ISO** → **Run workflow**.
-4. Wait for the green checkmark. Open that run and download the **FroOS-VirtualBox-ISO** artifact.
-5. Extract the downloaded artifact ZIP. It contains `FroOS-Preview-0.4.iso` and a checksum file.
+## VirtualBox
+Create a VM named FroOS (Debian 64-bit), assign 4 GB RAM and 2 CPU cores, attach the ISO in **Settings → Storage**, then start it.
 
-### B. Create the VM with one PowerShell command
-1. Install Oracle VirtualBox from https://www.virtualbox.org/wiki/Downloads.
-2. Extract the artifact ISO somewhere convenient, e.g. `C:\Users\you\Downloads\FroOS-Preview-0.4.iso`.
-3. In the project folder, right-click Start and open **Terminal (PowerShell)**, then run:
-   ```powershell
-   Set-ExecutionPolicy -Scope Process Bypass
-   .\Create-FroOS-VM.ps1 -IsoPath "$HOME\Downloads\FroOS-Preview-0.4.iso"
-   ```
-   Change the path if your ISO is elsewhere. This creates a VM named FroOS with 4 GB RAM, 2 CPU cores and a 24 GB virtual disk.
-4. Open VirtualBox and start **FroOS**. If it doesn't boot automatically, confirm the ISO is attached under Settings → Storage and Optical is first in the boot order.
-
-You can also create the VM manually: Linux / Debian (64-bit), 4 GB RAM, 2 CPUs, attach the ISO under Settings → Storage, then Start.
-
-## Notes
-- Build logs are available in GitHub Actions if a build step fails.
-- This is a live ISO: data may not persist after shutdown, and some prototype apps simulate operating-system behavior.
-- First build requires internet and may take several minutes.
-- VirtualBox Host key (usually Right Ctrl) releases mouse/keyboard capture.
-
-## Fix in 0.4.1
-The build logs showed the obsolete Debian security URL `security.debian.org bookworm/updates` returning HTTP 404. This revision disables live-build's outdated default security source and adds the current Bookworm security suite `bookworm-security`. Replace the old workflow with this revision, then rerun Actions.
+This is an experimental Linux live ISO that launches the FroOS web desktop prototype. The ISO has not been built or boot-tested in this environment. If the next build fails, download the new logs.
