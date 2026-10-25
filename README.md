@@ -31,3 +31,6 @@ You can also create the VM manually: Linux / Debian (64-bit), 4 GB RAM, 2 CPUs, 
 - This is a live ISO: data may not persist after shutdown, and some prototype apps simulate operating-system behavior.
 - First build requires internet and may take several minutes.
 - VirtualBox Host key (usually Right Ctrl) releases mouse/keyboard capture.
+
+## Fix in 0.4.1
+The build logs showed the obsolete Debian security URL `security.debian.org bookworm/updates` returning HTTP 404. This revision disables live-build's outdated default security source and adds the current Bookworm security suite `bookworm-security`. Replace the old workflow with this revision, then rerun Actions.
